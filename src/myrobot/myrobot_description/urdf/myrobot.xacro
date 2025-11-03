@@ -1,0 +1,86 @@
+<?xml version="1.0"?>
+<robot name="myrobot" xmlns:xacro="http://www.ros.org/wiki/xacro">
+  <!-- ============ Enter xacro properties here (if you want) =============== -->
+
+	<xacro:property name="chassis_width" value="0.05"/>
+	<xacro:property name="chassis_length" value="0.05"/>
+	<xacro:property name="chassis_height" value="0.05"/>
+	<xacro:property name="chassis_z" value="0.05"/>
+	<xacro:property name="chassis_mass" value="2000"/>
+
+  <xacro:property name="wheel_radius" value="0.02"/>
+  <xacro:property name="wheel_mass" value="0.1"/>
+  <xacro:property name="wheel_width" value="0.02"/>
+  <xacro:property name="wheelbase_offset" value="0.07"/>
+  <xacro:property name="wheelbase_length" value="0.1"/>
+
+
+
+  <!-- ============ Including macros and materials =============== -->
+  
+	<xacro:include filename="$(find myrobot_description)/urdf/myrobot.gazebo" />
+  <xacro:include filename="$(find myrobot_description)/urdf/macro.xacro"/>
+  <xacro:include filename="$(find myrobot_description)/urdf/materials.xacro"/>
+
+  <!-- ============ Some magic. Do not touch =============== -->
+  
+  <link name="rs_t265_pose_frame">
+  </link>
+
+  <joint name="rs_t265_joint" type="fixed">
+    <origin rpy="0 0 0" xyz="0 0 0"/>
+    <parent link="rs_t265_pose_frame"/>
+    <child link="base_link"/>
+  </joint>
+
+    <!-- ============ Enter base_link code here =============== -->
+  <link
+    name="base_link">
+    <xacro:box_inertial sx="10" sy="10" sz="10" mass="${chassis_mass}">
+      <origin rpy="0 0 0" xyz="0 0 0"/>
+    </xacro:box_inertial>
+    <visual>
+      <origin
+        xyz="0 0 ${chassis_z}"
+        rpy="0 0 ${PI/2}" />
+      <geometry>
+        <mesh
+          filename="package://myrobot_description/meshes/volks.dae" scale="${chassis_width} ${chassis_length} ${chassis_height}"/>
+      </geometry>
+      <material
+        name="">
+        <color
+          rgba="0 1 0 1" />
+      </material>
+    </visual>
+    <collision>
+      <origin
+        xyz="0 0 ${chassis_z}"
+        rpy="0 0 ${PI/2}" />
+      <geometry>
+        <mesh
+          filename="package://myrobot_description/meshes/volks.dae" scale="${chassis_width} ${chassis_length} ${chassis_height}"/>
+      </geometry>
+    </collision>
+  </link>
+    <!-- ============ Enter wheels code here =============== -->
+  <!-- Использование макроса колеса -->
+  <xacro:wheel wheel_prefix="right" parent_link="base_link" left_right="1" radius="${wheel_radius}" width="${wheel_width}">
+    <origin xyz=
+      "${wheelbase_offset} 
+       ${-wheelbase_length/2}
+       ${wheel_radius}"/> 
+  </xacro:wheel>
+  <xacro:wheel wheel_prefix="left" parent_link="base_link" left_right="-1" radius="${wheel_radius}" width="${wheel_width}">
+    <origin xyz=
+      "${wheelbase_offset} 
+       ${wheelbase_length/2}
+       ${wheel_radius}"/> 
+  </xacro:wheel>
+    <!-- ============ Enter sensors code here =============== -->
+    <!-- ============ LIDAR =============== -->
+
+    <!-- ============ IR sensors =============== -->
+    
+
+</robot>

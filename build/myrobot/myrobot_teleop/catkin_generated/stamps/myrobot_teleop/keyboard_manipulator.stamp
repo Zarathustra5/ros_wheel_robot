@@ -1,0 +1,104 @@
+#!/usr/bin/env python
+import rospy
+from trajectory_msgs.msg import JointTrajectory, JointTrajectoryPoint
+from std_msgs.msg import Header
+from pynput.keyboard import Key, KeyCode, Listener
+
+MYROBOT_MAX_JOINT_VEL = 0.1
+
+class KeyboardManipulator:    
+    def __init__(self):
+        rospy.init_node('keyboard_manipulator')
+
+        self.pub = rospy.Publisher("arm_controller/command", JointTrajectory, queue_size=10)  
+
+        self.key_base_to_arm_base = 0
+        self.key_arm_base_to_bicep = 0
+        self.key_bicep_to_bottom_wrist = 0
+        self.old_base_to_arm_base = 0
+        self.old_arm_base_to_bicep = 0
+        self.old_bicep_to_bottom_wrist = 0
+        self.joint_names = ["base_to_arm_base_joint", "arm_base_to_bicep_joint", "bicep_to_bottom_wrist_joint", "bottom_wrist_to_elbow_joint", 
+                            "elbow_to_top_wrist_joint"]
+        # self.key_bottom_wrist_to_elbow = 0
+        # self.key_elbow_to_top_wrist = 0
+        self.target_positions = [0.0, 0.0, 0.0, 0.0, 0.0]
+        self.keyboard_listener = None
+        self.jointTrajectoryPoint = JointTrajectoryPoint([], [], [], [], 0.0)
+    def run(self):
+        self.keyboard_listener = Listener(on_press=self.on_key_press, on_release=self.on_key_release)
+        self.keyboard_listener.start()
+        rate = rospy.Rate(10)
+        try:
+            while not rospy.is_shutdown():
+                self.update_key_state()
+                rate.sleep()
+        except rospy.ROSInterruptException:
+            pass
+        self.keyboard_listener.stop()
+        self.keyboard_listener.join()    
+
+    def update_key_state(self):
+
+        jointPositions = JointTrajectory()
+        jointPositions.header = Header()
+        jointPositions.header.stamp = rospy.Time.now()
+        jointPositions.joint_names = ["base_to_arm_base_joint", "arm_base_to_bicep_joint", "bicep_to_bottom_wrist_joint", "bottom_wrist_to_elbow_joint", 
+                            "elbow_to_top_wrist_joint"]
+        point=JointTrajectoryPoint()
+        point.positions = [self.key_base_to_arm_base, 
+                        self.key_arm_base_to_bicep,
+                        self.key_bicep_to_bottom_wrist, 
+                        0.0, 
+                        0.0]
+        point.time_from_start = rospy.Duration(2)
+        jointPositions.points.append(point)
+        self.pub.publish(jointPositions)
+
+    def on_key_press(self, key):
+        if key == KeyCode.from_char('q'):
+            self.key_base_to_arm_base += 0.1
+        elif key == KeyCode.from_char('e'):
+            self.key_base_to_arm_base -= 0.1
+
+        if key == KeyCode.from_char('r'):
+            self.key_arm_base_to_bicep += 0.1
+        elif key == KeyCode.from_char('t'):
+            self.key_arm_base_to_bicep -= 0.1
+        
+        if key == KeyCode.from_char('f'):
+            self.key_bicep_to_bottom_wrist += 0.1
+        elif key == KeyCode.from_char('g'):
+            self.key_bicep_to_bottom_wrist -= 0.1
+            
+        self.old_base_to_arm_base = self.key_base_to_arm_base
+        self.old_arm_base_to_bicep = self.key_arm_base_to_bicep
+        self.old_bicep_to_bottom_wrist = self.key_bicep_to_bottom_wrist
+        self.update_key_state()
+        return True
+
+    def on_key_release(self, key):
+        if key == KeyCode.from_char('q') and self.key_base_to_arm_base != 0:
+            self.key_base_to_arm_base = self.old_base_to_arm_base
+        elif key == KeyCode.from_char('e') and self.key_base_to_arm_base != 0:
+            self.key_base_to_arm_base = self.old_base_to_arm_base
+            
+        if key == KeyCode.from_char('r') and self.key_arm_base_to_bicep != 0:
+            self.key_arm_base_to_bicep = self.old_arm_base_to_bicep
+        elif key == KeyCode.from_char('t') and self.key_arm_base_to_bicep != 0:
+            self.key_arm_base_to_bicep = self.old_arm_base_to_bicep
+        
+        if key == KeyCode.from_char('f') and self.key_arm_base_to_bicep != 0:
+            self.key_arm_base_to_bicep = self.old_bicep_to_bottom_wrist
+        elif key == KeyCode.from_char('g') and self.key_arm_base_to_bicep != 0:
+            self.key_arm_base_to_bicep = self.old_bicep_to_bottom_wrist
+        
+        if key == Key.esc:
+            return False
+        
+        self.update_key_state()
+        return True
+
+if __name__=="__main__":
+    teleop = KeyboardManipulator()
+    teleop.run()

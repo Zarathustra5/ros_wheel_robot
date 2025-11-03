@@ -1,0 +1,8 @@
+prefix=/home/mikita/catkin_ws/install
+
+Name: myrobot_teleop
+Description: Description of myrobot_teleop
+Version: 0.1.0
+Cflags: 
+Libs: -L${prefix}/lib 
+Requires: rospy roscpp geometry_msgs sensor_msgs

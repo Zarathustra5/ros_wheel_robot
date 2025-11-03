@@ -1,0 +1,2 @@
+myrobot/arm_four_wheel_my_description:myrobot/diff_drive_controller:myrobot/four_wheel_my_description:myrobot/four_wheel_steering_controller:myrobot/my_description:myrobot/myrobot_teleop
+-DCATKIN_DEVEL_PREFIX=/home/mikita/catkin_ws/devel -DCMAKE_INSTALL_PREFIX=/home/mikita/catkin_ws/install -G Unix Makefiles

@@ -1,0 +1,169 @@
+#!/usr/bin/env python3
+import rospy, math
+from geometry_msgs.msg import Twist
+from sensor_msgs.msg import Range, LaserScan
+
+#                         12
+#                     13      11
+#                 14       ^      10
+#             15         /   \        9
+#         16               |              8
+#     17                   |                  7
+# 18                       |                     6
+#     19                                      5
+#         20                              4
+#             21                      3
+#                 22              2
+#                     23      1
+#                         24
+
+
+#Корректно едет вдоль стены и поворачивает влево. Увеличить резкость поворота, добавить поворот направо 
+
+MYROBOT_MAX_LIN_VEL = 0.1
+MYROBOT_MAX_ANG_VEL = 1.0 #2.5
+SENSORS_DISTANCE = 0.2
+LIDAR_DISTANCE = 0.4
+MIN_LIDAR_DISTANCE = 0.2
+MYROBOT_SPEED = 1
+SEGMENTS = 24
+
+def logL(x, y):
+    print(f"turn left from: {x} with angle: {y}")
+
+def logR(x, y):
+    print(f"turn right from: {x} with angle: {y}")
+
+def lerp(a, b, coeff):
+    return float(a) + float(b-a) * float(coeff)
+
+class KeyboardTeleop:    
+    def __init__(self):
+        rospy.init_node('keyboard_teleop')
+
+        self.pub = rospy.Publisher('/controller/cmd_vel', Twist, queue_size=10)
+        self.sub_front_0 = rospy.Subscriber('/my_robot/sensor/left', Range, self.onIRSensor0)
+        self.dist_front_0 = 0.0
+        self.sub_front_1 = rospy.Subscriber('/my_robot/sensor/center', Range, self.onIRSensor1)
+        self.dist_front_1 = 0.0
+        self.sub_front_2 = rospy.Subscriber('/my_robot/sensor/right', Range, self.onIRSensor2)
+        self.dist_front_2 = 0.0
+
+        self.sub_lidar = rospy.Subscriber('/my_robot/rplidar/scan', LaserScan, self.onLaserSensor)
+        self.distances = []
+        self.lidar = LaserScan.angle_max
+
+        for i in range(SEGMENTS):
+            self.distances.append(0)
+
+
+        self.target_linear_vel   = 0.0
+        self.target_angular_vel  = 0.0
+    
+    def leftTurn(self, idx):
+        self.target_angular_vel = self.distances[idx]
+        self.target_linear_vel = MYROBOT_MAX_LIN_VEL
+        if(self.distances[idx] >= 1.0):
+            self.target_angular_vel = 1
+        logL(idx, self.target_angular_vel)    
+
+    def rightTurn(self, idx):
+        logR(idx, self.target_angular_vel)
+        self.target_angular_vel = self.distances[idx]
+        self.target_linear_vel = MYROBOT_MAX_LIN_VEL
+
+    def run(self):
+        rate = rospy.Rate(10)
+        try:
+            while not rospy.is_shutdown():
+                self.update_velocity()
+                rate.sleep()
+        except rospy.ROSInterruptException:
+            pass 
+
+    def onIRSensor0(self, msg):
+        self.dist_front_0 = msg.range / msg.max_range
+    def onIRSensor1(self, msg):
+        self.dist_front_1 = msg.range / msg.max_range
+    def onIRSensor2(self, msg):
+        self.dist_front_2 = msg.range / msg.max_range
+    def onLaserSensor(self, msg):
+        for i in range(SEGMENTS):
+            self.distances[i] = 9999
+
+        angle = msg.angle_min
+        for r in msg.ranges:
+            if math.isinf(r):
+                r = 12
+
+            a = angle * 180 / math.pi
+            idx = int(a / (360 / SEGMENTS)) % SEGMENTS
+            # print(repr(idx) + ' of ' + repr(a) + ' with dist= ' + repr(r))
+            self.distances[idx] = min(self.distances[idx], r)
+            angle = angle + msg.angle_increment
+
+    def update_velocity(self):
+        # print('distances: ' + repr(self.distances))
+
+        #self.target_linear_vel = 0
+        #self.target_angular_vel = 0
+
+        if(self.dist_front_0 < SENSORS_DISTANCE or self.dist_front_1 < SENSORS_DISTANCE or self.dist_front_2 < SENSORS_DISTANCE):
+            if self.dist_front_2 < SENSORS_DISTANCE:
+                print('case 3 right: ' + repr(self.dist_front_2))
+                self.target_linear_vel = MYROBOT_MAX_LIN_VEL
+                self.target_angular_vel = -MYROBOT_MAX_ANG_VEL * (1 - self.dist_front_2)
+            elif self.dist_front_0 < SENSORS_DISTANCE:
+                print('case 2 left: ' + repr(self.dist_front_0))
+                self.target_linear_vel = MYROBOT_MAX_LIN_VEL
+                self.target_angular_vel = MYROBOT_MAX_ANG_VEL * (1 - self.dist_front_0)
+            elif self.dist_front_1 < SENSORS_DISTANCE:
+                print('case 1 center: ' + repr(self.dist_front_1))
+                self.target_angular_vel = MYROBOT_MAX_ANG_VEL
+
+        else:
+            if((self.distances[20]>LIDAR_DISTANCE or self.distances[19] > LIDAR_DISTANCE or self.distances[18]>LIDAR_DISTANCE or 
+               self.distances[17]>LIDAR_DISTANCE or self.distances[16]>LIDAR_DISTANCE) and 
+               (self.distances[20] > MIN_LIDAR_DISTANCE and self.distances[19] > MIN_LIDAR_DISTANCE and self.distances[18] > MIN_LIDAR_DISTANCE and 
+               self.distances[17] > MIN_LIDAR_DISTANCE and self.distances[16] > MIN_LIDAR_DISTANCE)):
+            #if(self.distances[19] > LIDAR_DISTANCE or self.distances[18]>LIDAR_DISTANCE or self.distances[17]>LIDAR_DISTANCE ):
+                if(self.distances[18]>LIDAR_DISTANCE):
+                    self.leftTurn(18)
+                elif(self.distances[17]>LIDAR_DISTANCE):
+                    self.leftTurn(17)
+                elif(self.distances[16]>LIDAR_DISTANCE):
+                    self.leftTurn(16)
+                elif(self.distances[19]>LIDAR_DISTANCE + 0.1):
+                   self.leftTurn(19)
+                elif(self.distances[20]>LIDAR_DISTANCE + 0.2):
+                   self.leftTurn(20)
+            elif(self.distances[12]>LIDAR_DISTANCE or self.distances[13]>LIDAR_DISTANCE or self.distances[14]>LIDAR_DISTANCE):
+                print('Along the wall')
+                self.target_angular_vel = 0.0
+                self.target_linear_vel = MYROBOT_MAX_LIN_VEL
+            elif(self.distances[4]>LIDAR_DISTANCE or self.distances[5]>LIDAR_DISTANCE or self.distances[6]>LIDAR_DISTANCE or self.distances[7]>LIDAR_DISTANCE or self.distances[8]>LIDAR_DISTANCE):
+            #elif(self.distances[5]>LIDAR_DISTANCE or self.distances[6]>LIDAR_DISTANCE or self.distances[7]>LIDAR_DISTANCE):
+                if(self.distances[4]>LIDAR_DISTANCE):
+                    self.rightTurn(4)
+                elif(self.distances[5]>LIDAR_DISTANCE):
+                    self.rightTurn(5)
+                elif(self.distances[6]>LIDAR_DISTANCE):
+                    self.rightTurn(6)
+                elif(self.distances[7]>LIDAR_DISTANCE):
+                    self.rightTurn(7)
+                elif(self.distances[8]>LIDAR_DISTANCE):
+                    self.rightTurn(8)
+        for i in range (12, 17):
+            if self.distances[i] <= 0.2:
+                self.target_linear_vel /= 2
+
+        twist = Twist()
+        rate = rospy.Rate(10)
+        twist.linear.x = self.target_linear_vel; twist.linear.y = 0.0; twist.linear.z = 0.0
+        twist.angular.x = 0.0; twist.angular.y = 0.0; twist.angular.z = self.target_angular_vel
+        self.pub.publish(twist)
+        rate.sleep()
+
+if __name__=="__main__":
+    teleop = KeyboardTeleop()
+    teleop.run()
