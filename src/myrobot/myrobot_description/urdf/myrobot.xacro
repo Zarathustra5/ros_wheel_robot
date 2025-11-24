@@ -2,25 +2,32 @@
 <robot name="myrobot" xmlns:xacro="http://www.ros.org/wiki/xacro">
   <!-- ============ Enter xacro properties here (if you want) =============== -->
 
+  <!-- Параметры кузова робота -->
 	<xacro:property name="chassis_width" value="0.05"/>
 	<xacro:property name="chassis_length" value="0.05"/>
 	<xacro:property name="chassis_height" value="0.05"/>
 	<xacro:property name="chassis_z" value="0.05"/>
-	<xacro:property name="chassis_mass" value="2000"/>
+	<xacro:property name="chassis_mass" value="1"/>
 
+  <!-- Параметры колес робота -->
   <xacro:property name="wheel_radius" value="0.02"/>
   <xacro:property name="wheel_mass" value="0.1"/>
   <xacro:property name="wheel_width" value="0.02"/>
   <xacro:property name="wheelbase_offset" value="0.07"/>
   <xacro:property name="wheelbase_length" value="0.1"/>
 
+  <!-- Параметры лидара робота -->
+  <xacro:property name="lidar_radius" value="0.001"/>
+  <xacro:property name="lidar_width" value="0.001"/>
+  <xacro:property name="lidar_mass" value="0.1"/>
 
 
   <!-- ============ Including macros and materials =============== -->
   
-	<xacro:include filename="$(find myrobot_description)/urdf/myrobot.gazebo" />
   <xacro:include filename="$(find myrobot_description)/urdf/macro.xacro"/>
   <xacro:include filename="$(find myrobot_description)/urdf/materials.xacro"/>
+  <!-- Подключаем макросы gazebo для использования макроса rplidar_a2_gpu лидаром -->
+	<xacro:include filename="$(find myrobot_simulator)/urdf/macro.gazebo.xacro" />
 
   <!-- ============ Some magic. Do not touch =============== -->
   
@@ -33,7 +40,8 @@
     <child link="base_link"/>
   </joint>
 
-    <!-- ============ Enter base_link code here =============== -->
+  <!-- ============ Enter base_link code here =============== -->
+  <!-- Описываем линк кузова робота -->
   <link
     name="base_link">
     <xacro:box_inertial sx="10" sy="10" sz="10" mass="${chassis_mass}">
@@ -63,24 +71,35 @@
       </geometry>
     </collision>
   </link>
-    <!-- ============ Enter wheels code here =============== -->
-  <!-- Использование макроса колеса -->
-  <xacro:wheel wheel_prefix="right" parent_link="base_link" left_right="1" radius="${wheel_radius}" width="${wheel_width}">
+  <!-- ============ Enter wheels code here =============== -->
+  <!-- Описываем линк правого колеса робота -->
+  <xacro:wheel wheel_prefix="right" parent_link="base_link" left_right="1" radius="${wheel_radius}" mass="${wheel_mass}" width="${wheel_width}">
     <origin xyz=
       "${wheelbase_offset} 
        ${-wheelbase_length/2}
        ${wheel_radius}"/> 
   </xacro:wheel>
-  <xacro:wheel wheel_prefix="left" parent_link="base_link" left_right="-1" radius="${wheel_radius}" width="${wheel_width}">
+  <!-- Описываем линк левого колеса робота -->
+  <xacro:wheel wheel_prefix="left" parent_link="base_link" left_right="-1" radius="${wheel_radius}" mass="${wheel_mass}" width="${wheel_width}">
     <origin xyz=
       "${wheelbase_offset} 
        ${wheelbase_length/2}
        ${wheel_radius}"/> 
   </xacro:wheel>
-    <!-- ============ Enter sensors code here =============== -->
-    <!-- ============ LIDAR =============== -->
+  <!-- ============ LIDAR =============== -->
+  <!-- Вызываем макросы, необходимые для работы лидара -->
+  <xacro:lidar lidar_prefix="base" parent_link="base_link" radius="${lidar_radius}" mass="${lidar_mass}" width="${lidar_width}"></xacro:lidar>
+  <xacro:rplidar_a2_gpu max_angle="360" min_angle="0" name="base_lidar" ray_count="400" ros_topic="/myrobot/rplidar/scan" update_rate="20"/>
+  <!-- ============ Enter sensors code here =============== -->
 
-    <!-- ============ IR sensors =============== -->
-    
+  <!-- ============ IR sensors =============== -->
+  <!-- Описываем передние датчики дистанции робота -->
+  <xacro:ir_sensor_rot name="front_0" parent="base_link" distance="0.135" yaw="0" pitch="0"></xacro:ir_sensor_rot>
+  <xacro:ir_sensor_rot name="front_1" parent="base_link" distance="0.135" yaw="0.4" pitch="0"></xacro:ir_sensor_rot>
+  <xacro:ir_sensor_rot name="front_2" parent="base_link" distance="0.135" yaw="-0.4" pitch="0"></xacro:ir_sensor_rot>
+  <!-- Описываем задние датчики дистанции робота -->
+  <xacro:ir_sensor_rot name="back_0" parent="base_link" distance="-0.175" yaw="0" pitch="3.142"></xacro:ir_sensor_rot>
+  <xacro:ir_sensor_rot name="back_1" parent="base_link" distance="-0.175" yaw="0.3" pitch="3.142"></xacro:ir_sensor_rot>
+  <xacro:ir_sensor_rot name="back_2" parent="base_link" distance="-0.175" yaw="-0.3" pitch="3.142"></xacro:ir_sensor_rot>
 
 </robot>

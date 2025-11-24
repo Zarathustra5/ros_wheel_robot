@@ -72,6 +72,21 @@ Visualization Manager:
           Show Axes: false
           Show Trail: false
           Value: true
+        ir_sensor_back_0:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+          Value: true
+        ir_sensor_back_1:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+          Value: true
+        ir_sensor_back_2:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+          Value: true
         left_wheel:
           Alpha: 1
           Show Axes: false
@@ -291,7 +306,7 @@ Visualization Manager:
       Use rainbow: true
       Value: true
     - Alpha: 0.5
-      Buffer Length: 1
+      Buffer Length: 3
       Class: rviz/Range
       Color: 255; 255; 255
       Enabled: true
@@ -301,7 +316,7 @@ Visualization Manager:
       Unreliable: false
       Value: true
     - Alpha: 0.5
-      Buffer Length: 1
+      Buffer Length: 3
       Class: rviz/Range
       Color: 255; 255; 255
       Enabled: true
@@ -311,13 +326,43 @@ Visualization Manager:
       Unreliable: false
       Value: true
     - Alpha: 0.5
-      Buffer Length: 1
+      Buffer Length: 3
       Class: rviz/Range
       Color: 255; 255; 255
       Enabled: true
       Name: Range
       Queue Size: 100
       Topic: /myrobot/sensor/front_2
+      Unreliable: false
+      Value: true
+    - Alpha: 0.5
+      Buffer Length: 3
+      Class: rviz/Range
+      Color: 255; 255; 255
+      Enabled: true
+      Name: Range
+      Queue Size: 100
+      Topic: /myrobot/sensor/back_0
+      Unreliable: false
+      Value: true
+    - Alpha: 0.5
+      Buffer Length: 3
+      Class: rviz/Range
+      Color: 255; 255; 255
+      Enabled: true
+      Name: Range
+      Queue Size: 100
+      Topic: /myrobot/sensor/back_1
+      Unreliable: false
+      Value: true
+    - Alpha: 0.5
+      Buffer Length: 3
+      Class: rviz/Range
+      Color: 255; 255; 255
+      Enabled: true
+      Name: Range
+      Queue Size: 100
+      Topic: /myrobot/sensor/back_2
       Unreliable: false
       Value: true
   Enabled: true

@@ -19,10 +19,10 @@
   </xacro:macro>
 
   <!-- WHEEL MACRO -->
-  <xacro:macro name="wheel" params="wheel_prefix parent_link left_right radius width *joint_origin">
+  <xacro:macro name="wheel" params="wheel_prefix parent_link left_right radius mass width *joint_origin">
     <link name="${wheel_prefix}_wheel">
       
-      <xacro:cylinder_inertial length="${width}" mass="${wheel_mass}" radius="${radius}">
+      <xacro:cylinder_inertial length="${width}" mass="${mass}" radius="${radius}">
         <origin rpy="${PI/2} 0 0" xyz="0 0 0"/>
       </xacro:cylinder_inertial>
 
@@ -57,6 +57,33 @@
         <hardwareInterface>hardware_interface/VelocityJointInterface</hardwareInterface>
       </joint>
     </transmission>
+  </xacro:macro>
+
+  <!-- LIDAR MACRO -->
+  <xacro:macro name="lidar" params="lidar_prefix parent_link radius mass width">
+    <joint name="${lidar_prefix}_lidar_joint" type="fixed">
+        <parent link="${parent_link}"/>
+        <child link="${lidar_prefix}_lidar_frame"/>
+        <origin xyz="-0.05 0 0.09" rpy="0 0 0"/>
+    </joint>
+
+    <link name="${lidar_prefix}_lidar_frame">
+      <xacro:cylinder_inertial length="${width}" mass="${mass}" radius="${radius}">
+        <origin rpy="${PI/2} 0 0" xyz="0 0 0"/>
+      </xacro:cylinder_inertial>
+      <visual>
+        <origin rpy="0 0 0" xyz="0 0 0"/>
+        <geometry>
+          <mesh filename="package://myrobot_description/meshes/rplidar.dae" scale="${radius} ${radius} ${width/2}"/>
+        </geometry>
+      </visual>
+      <collision>
+        <origin rpy="0 0 0" xyz="0 0 0"/>
+        <geometry>
+          <cylinder length="${width}" radius="${radius}"/>
+        </geometry>
+      </collision>
+    </link>
   </xacro:macro>
 
   <!-- OTHER -->
@@ -98,6 +125,7 @@
     </joint>
   </xacro:macro>
 
+  <!-- IR-SENSOR MACRO -->
   <xacro:macro name="ir_sensor" params="name parent sx sy sz *origin">
     <link name="ir_sensor_${name}">
       <visual>
@@ -113,13 +141,42 @@
       <child link="ir_sensor_${name}"/>
       <xacro:insert_block name="origin"/>
     </joint>
+
+    <gazebo reference="ir_sensor_${name}">
+      <sensor type="ray" name="ir_sensor_${name}_ray">
+        <pose>0 0 0 0 0 0</pose>
+        <visualize>true</visualize>
+        <update_rate>50</update_rate>
+        <always_on>true</always_on>
+        <ray>
+          <scan>
+            <horizontal>
+              <samples>1</samples>
+              <resolution>1</resolution>
+              <min_angle>0.0</min_angle>
+              <max_angle>0.0</max_angle>
+            </horizontal>
+          </scan>
+        </ray>
+        <plugin name="ir_sensor_${name}_plugin" filename="libgazebo_ros_range.so">
+          <topicName>/myrobot/sensor/${name}</topicName>
+          <frameName>ir_sensor_${name}</frameName>
+          <gaussianNoise>0.005</gaussianNoise>
+          <alwaysOn>true</alwaysOn>
+          <updateRate>5</updateRate>
+          <visualize>true</visualize>
+          <radiation>infrared</radiation>
+          <fov>0.436</fov>
+        </plugin>
+      </sensor>
+    </gazebo>
   </xacro:macro>
 
   <xacro:macro name="ir_sensor_rot" params="name parent distance yaw pitch">
     <xacro:ir_sensor name="${name}" parent="${parent}" 
       sx="0.003" sy="0.008" sz="0.008">
       <origin rpy="0 ${pitch} ${yaw}"
-       xyz="${distance*cos(yaw)} ${distance*sin(yaw)} 0"/>
+       xyz="${distance*cos(yaw)} ${distance*sin(yaw)} 0.03"/>
     </xacro:ir_sensor>
   </xacro:macro>
 </robot>

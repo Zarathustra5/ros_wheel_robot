@@ -112,4 +112,19 @@
     <frameName>ir_sensor_front_2</frameName>
   </xacro:ir_sensor_gazebo>
 
+  <xacro:ir_sensor_gazebo name="back_0">
+    <topicName>/myrobot/sensor/back_0</topicName>
+    <frameName>ir_sensor_back_0</frameName>
+  </xacro:ir_sensor_gazebo>
+
+  <xacro:ir_sensor_gazebo name="back_1">
+    <topicName>/myrobot/sensor/back_1</topicName>
+    <frameName>ir_sensor_back_1</frameName>
+  </xacro:ir_sensor_gazebo>
+
+  <xacro:ir_sensor_gazebo name="back_2">
+    <topicName>/myrobot/sensor/back_2</topicName>
+    <frameName>ir_sensor_back_2</frameName>
+  </xacro:ir_sensor_gazebo>
+
 </robot>
