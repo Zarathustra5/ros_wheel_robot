@@ -3,8 +3,8 @@ import rospy
 from geometry_msgs.msg import Twist
 from pynput.keyboard import Key, KeyCode, Listener
 
-MYROBOT_MAX_LIN_VEL = 1
-MYROBOT_MAX_ANG_VEL = 2
+MINICAR_MAX_LIN_VEL = 1
+MINICAR_MAX_ANG_VEL = 2
 
 class KeyboardTeleop:    
     def __init__(self):
@@ -36,8 +36,8 @@ class KeyboardTeleop:
         self.keyboard_listener.join()    
 
     def update_key_state(self):
-        self.target_linear_vel = MYROBOT_MAX_LIN_VEL * self.key_state_vel * self.speed_mul
-        self.target_angular_vel = MYROBOT_MAX_ANG_VEL * self.key_state_ang
+        self.target_linear_vel = # --- Enter equation for linear speed ---
+        self.target_angular_vel = # --- Enter equation for angular speed ---
         twist = Twist()
         twist.linear.x = self.target_linear_vel; twist.linear.y = 0.0; twist.linear.z = 0.0
         twist.angular.x = 0.0; twist.angular.y = 0.0; twist.angular.z = self.target_angular_vel
@@ -46,28 +46,18 @@ class KeyboardTeleop:
     def on_key_press(self, key):
         if key == KeyCode.from_char('w'):
             self.key_state_vel = 1
-        elif key == KeyCode.from_char('s'):
-            self.key_state_vel = -1
-
-        if key == KeyCode.from_char('a'):
-            self.key_state_ang = 1
-        elif key == KeyCode.from_char('d'):
-            self.key_state_ang = -1
+		
+		# --- enter key code here ---
+		
         self.update_key_state()
         return True
 
     def on_key_release(self, key):
         if key == KeyCode.from_char('w') and self.key_state_vel != 0:
             self.key_state_vel = 0
-        elif key == KeyCode.from_char('s') and self.key_state_vel != 0:
-            self.key_state_vel = 0
-            
-        if key == KeyCode.from_char('a') and self.key_state_ang != 0:
-            self.key_state_ang = 0
-        elif key == KeyCode.from_char('d') and self.key_state_ang != 0:
-            self.key_state_ang = 0
-        elif key == Key.esc:
-            return False
+			
+		# --- enter key code here ---
+		
         self.update_key_state()
         return True
 

@@ -5,4 +5,4 @@ Description: Description of myrobot_teleop
 Version: 0.1.0
 Cflags: 
 Libs: -L${prefix}/lib 
-Requires: rospy roscpp geometry_msgs sensor_msgs
+Requires: rospy geometry_msgs sensor_msgs

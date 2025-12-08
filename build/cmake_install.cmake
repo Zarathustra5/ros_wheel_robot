@@ -131,12 +131,11 @@ endif()
 if(NOT CMAKE_INSTALL_LOCAL_ONLY)
   # Include the install script for each subdirectory.
   include("/home/mikita/catkin_ws/build/gtest/cmake_install.cmake")
-  include("/home/mikita/catkin_ws/build/myrobot/arm_four_wheel_my_description/cmake_install.cmake")
-  include("/home/mikita/catkin_ws/build/myrobot/four_wheel_my_description/cmake_install.cmake")
-  include("/home/mikita/catkin_ws/build/myrobot/my_description/cmake_install.cmake")
+  include("/home/mikita/catkin_ws/build/myrobot/myrobot_description/cmake_install.cmake")
   include("/home/mikita/catkin_ws/build/myrobot/myrobot_teleop/cmake_install.cmake")
-  include("/home/mikita/catkin_ws/build/myrobot/diff_drive_controller/cmake_install.cmake")
-  include("/home/mikita/catkin_ws/build/myrobot/four_wheel_steering_controller/cmake_install.cmake")
+  include("/home/mikita/catkin_ws/build/myrobot/myrobot_simulator/cmake_install.cmake")
+  include("/home/mikita/catkin_ws/build/test/cmake_install.cmake")
+  include("/home/mikita/catkin_ws/build/myrobot/myrobot_control/cmake_install.cmake")
 
 endif()
 
