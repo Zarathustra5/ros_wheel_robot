@@ -61,6 +61,10 @@ if("x${CMAKE_INSTALL_COMPONENT}x" STREQUAL "xUnspecifiedx" OR NOT CMAKE_INSTALL_
 endif()
 
 if("x${CMAKE_INSTALL_COMPONENT}x" STREQUAL "xUnspecifiedx" OR NOT CMAKE_INSTALL_COMPONENT)
+  file(INSTALL DESTINATION "${CMAKE_INSTALL_PREFIX}/share/myrobot_teleop/nodes" TYPE PROGRAM FILES "/home/mikita/catkin_ws/build/myrobot/myrobot_teleop/catkin_generated/installspace/lidar_teleop")
+endif()
+
+if("x${CMAKE_INSTALL_COMPONENT}x" STREQUAL "xUnspecifiedx" OR NOT CMAKE_INSTALL_COMPONENT)
   file(INSTALL DESTINATION "${CMAKE_INSTALL_PREFIX}/share/myrobot_teleop" TYPE DIRECTORY FILES "/home/mikita/catkin_ws/src/myrobot/myrobot_teleop/launch")
 endif()
 

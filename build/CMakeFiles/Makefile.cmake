@@ -30,6 +30,7 @@ set(CMAKE_MAKEFILE_DEPENDS
   "/home/mikita/catkin_ws/src/myrobot/myrobot_teleop/CMakeLists.txt"
   "/home/mikita/catkin_ws/src/myrobot/myrobot_teleop/nodes/auto_teleop"
   "/home/mikita/catkin_ws/src/myrobot/myrobot_teleop/nodes/keyboard_teleop"
+  "/home/mikita/catkin_ws/src/myrobot/myrobot_teleop/nodes/lidar_teleop"
   "/home/mikita/catkin_ws/src/myrobot/myrobot_teleop/package.xml"
   "/home/mikita/catkin_ws/src/test/CMakeLists.txt"
   "/home/mikita/catkin_ws/src/test/nodes/listener.py"

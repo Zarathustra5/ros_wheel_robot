@@ -1,0 +1,69 @@
+#!/usr/bin/env python
+import rospy
+from geometry_msgs.msg import Twist
+from sensor_msgs.msg import Range
+
+class AutoTeleop:
+    def __init__(self):
+        rospy.init_node('auto_teleop')
+
+        # Параметры
+        self.moving_direction = 1 # Направление движения робота (1 - движение вперед, иначе - движение назад)
+        self.safe_distance = 0.5  # Расстояние до препятствия, при котором робот начинает поворачивать
+        self.angular_speed = 0.3 # Угловая скорость
+
+        # Задаем линейную скорость робота и топики датчиков дистанции
+        if (self.moving_direction == 1):
+            self.linear_speed = 1
+            self.sensors = ['/myrobot/sensor/front_0', '/myrobot/sensor/front_1', '/myrobot/sensor/front_2']
+        else:
+            self.linear_speed = -1
+            self.sensors = ['/myrobot/sensor/back_0', '/myrobot/sensor/back_1', '/myrobot/sensor/back_2']
+
+        self.distances = [float('inf')] * 3
+
+        # Подписка на датчики
+        for i, topic in enumerate(self.sensors):
+            rospy.Subscriber(topic, Range, self.update_distances, callback_args=i)
+
+        # Публикация в cmd_vel
+        cmd_vel_topic = rospy.get_param('/auto_teleop/cmd_vel', '/cmd_vel')
+        self.pub = rospy.Publisher(cmd_vel_topic, Twist, queue_size=10)
+
+        self.rate = rospy.Rate(50)  # 50 Гц
+
+    def update_distances(self, msg, idx):
+        # Игнорируем "inf" или слишком большие значения
+        if msg.range < msg.max_range and msg.range > msg.min_range:
+            self.distances[idx] = msg.range
+        else:
+            self.distances[idx] = float('inf')
+
+    def run(self):
+        while not rospy.is_shutdown():
+            twist = Twist()
+
+            # Получаем минимальные расстояния
+            min_front = min(self.distances)
+            # Задаем переменные для датчиков дистанции
+            left = self.distances[1]
+            center = self.distances[0]
+            right = self.distances[2]
+
+            # Если обнаружено препятствие, тогда сравниваем показатели датчиков
+            if min_front < self.safe_distance:
+                # Если слева больше места — поворачиваем налево, иначе поворачиваем направо
+                if left > right:
+                    twist.angular.z = self.angular_speed
+                else:
+                    twist.angular.z = -self.angular_speed
+            else:
+                # Двигаемся вперёд
+                twist.linear.x = self.linear_speed
+
+            self.pub.publish(twist)
+            self.rate.sleep()
+
+if __name__ == '__main__':
+    teleop = AutoTeleop()
+    teleop.run()

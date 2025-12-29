@@ -1,0 +1,114 @@
+#!/usr/bin/env python
+
+import rospy
+import math
+from sensor_msgs.msg import LaserScan
+from geometry_msgs.msg import Twist
+
+class LidarTeleop:
+    def __init__(self):
+        rospy.init_node('lidar_teleop', anonymous=True)
+        
+        # Параметры управления
+        self.front_threshold = rospy.get_param('~front_threshold', 0.6)   # Порог для препятствий спереди
+        self.side_threshold = rospy.get_param('~side_threshold', 0.6)     # Порог для боковых препятствий
+        self.hysteresis = rospy.get_param('~hysteresis', 0.15)             # Гистерезис для выравнивания
+        self.linear_speed = rospy.get_param('~linear_speed', 0.3)          # Базовая линейная скорость
+        self.angular_speed = rospy.get_param('~angular_speed', 0.3)        # Базовая угловая скорость
+        self.safety_linear = rospy.get_param('~safety_linear', 0.05)       # Скорость при обнаружении препятствий
+        self.safety_angular = rospy.get_param('~safety_angular', 0.4)      # Угловая скорость при избегании
+        
+        # Настройка публикатора и подписчика
+        cmd_vel_topic = rospy.get_param('/lidar_teleop/cmd_vel', '/cmd_vel')
+        self.cmd_pub = rospy.Publisher(cmd_vel_topic, Twist, queue_size=10)
+        self.scan_sub = rospy.Subscriber('/myrobot/rplidar/scan', LaserScan, self.scan_callback)
+        
+        # Инициализация зон
+        self.setup_zones()
+        
+        rospy.loginfo("Lidar teleop node initialized. Using 24 sectors for obstacle avoidance.")
+
+    def setup_zones(self):
+        """Определение секторов для разных зон обнаружения"""
+        # Все 24 сектора (каждый по 15 градусов)
+        self.sectors = [[] for _ in range(24)]
+        
+        # Зоны для разных алгоритмов управления
+        self.front_sectors = [22, 23, 0, 1, 2]    # Передняя зона (330° - 30°)
+        self.left_front_sectors = [3, 4, 5]       # Лево-передняя зона (45° - 90°)
+        self.left_rear_sectors = [6, 7, 8]        # Лево-задняя зона (90° - 135°)
+        self.right_front_sectors = [19, 20, 21]   # Право-передняя зона (285° - 330°)
+        self.right_rear_sectors = [16, 17, 18]    # Право-задняя зона (240° - 285°)
+        self.rear_sectors = [9, 10, 11, 12, 13, 14, 15]  # Задняя зона (135° - 240°)
+
+    def scan_callback(self, scan):
+        """Обработка данных лидара и генерация управляющих команд"""
+        # Очистка секторов
+        for sector in self.sectors:
+            sector.clear()
+        
+        # Группировка лучей по секторам
+        for i, range_val in enumerate(scan.ranges):
+            # Пропуск недействительных значений
+            if not (scan.range_min <= range_val <= scan.range_max):
+                continue
+                
+            # Расчет угла для текущего луча
+            angle = scan.angle_min + i * scan.angle_increment
+            # Нормализация угла к диапазону [0, 2π)
+            if angle < 0:
+                angle += 2 * math.pi
+                
+            # Определение сектора (24 сектора по 15°)
+            sector_idx = int((angle / (2 * math.pi)) * 24) % 24
+            self.sectors[sector_idx].append(range_val)
+        
+        # Вычисление минимальных расстояний в зонах
+        min_dists = [min(sector) if sector else float('inf') for sector in self.sectors]
+        
+        # Применение разных алгоритмов для разных зон
+        front_min = min(min_dists[i] for i in self.front_sectors)  # Алгоритм 1: обнаружение препятствий спереди
+        left_front_min = min(min_dists[i] for i in self.left_front_sectors) # Алгоритм 2: лево-передняя зона
+        left_rear_min = min(min_dists[i] for i in self.left_rear_sectors)   # Алгоритм 3: лево-задняя зона
+        right_front_min = min(min_dists[i] for i in self.right_front_sectors) # Алгоритм 4: право-передняя зона
+        right_rear_min = min(min_dists[i] for i in self.right_rear_sectors)   # Алгоритм 5: право-задняя зона
+        
+        # Расчет эффективных боковых расстояний (с приоритетом передних секторов)
+        effective_left = min(left_front_min, left_rear_min)
+        effective_right = min(right_front_min, right_rear_min)
+        
+        # Формирование команды
+        cmd = Twist()
+        
+        # Алгоритм 1: Обнаружение препятствий спереди
+        if front_min < self.front_threshold:
+            # Алгоритм 2 и 4: Приоритет лево-передней и право-передней зон при избегании
+            if left_front_min > right_front_min:
+                cmd.angular.z = self.safety_angular  # Поворот налево (больше места слева спереди)
+            else:
+                cmd.angular.z = -self.safety_angular # Поворот направо
+            
+            cmd.linear.x = self.safety_linear  # Медленное движение вперед при маневре
+        else:
+            # Алгоритм 3 и 5: Выравнивание по коридору с использованием задних боковых зон
+            if effective_left > effective_right + self.hysteresis:
+                cmd.angular.z = self.angular_speed * 0.5  # Коррекция влево
+            elif effective_right > effective_left + self.hysteresis:
+                cmd.angular.z = -self.angular_speed * 0.5 # Коррекция вправо
+            
+            # Алгоритм 6: Динамическая регулировка скорости в зависимости от боковых расстояний
+            min_side = min(effective_left, effective_right)
+            if min_side < self.side_threshold:
+                cmd.linear.x = self.linear_speed * (min_side / self.side_threshold)
+            else:
+                cmd.linear.x = self.linear_speed
+        
+        # Публикация команды
+        self.cmd_pub.publish(cmd)
+
+if __name__ == '__main__':
+    try:
+        node = LidarTeleop()
+        rospy.spin()
+    except rospy.ROSInterruptException:
+        pass

@@ -1,6 +1,8 @@
 #!/usr/bin/env python3
 import rospy
+# Подключение типа Twist
 from geometry_msgs.msg import Twist
+# Встроенные инструменты для работы с клавиатурой
 from pynput.keyboard import Key, KeyCode, Listener
 
 MINICAR_MAX_LIN_VEL = 1
@@ -13,6 +15,7 @@ class KeyboardTeleop:
         cmd_vel_topic = rospy.get_param('/keyboard_teleop/cmd_vel', '/cmd_vel')
         rospy.loginfo('Cmd Vel topic: ' + cmd_vel_topic)
 
+        # Подключение к топику
         self.pub = rospy.Publisher(cmd_vel_topic, Twist, queue_size=10)  
 
         self.key_state_vel = 0
@@ -22,10 +25,11 @@ class KeyboardTeleop:
         self.target_angular_vel  = 0.0
         self.keyboard_listener = None
         
+    # Основной цикл программы
     def run(self):
         self.keyboard_listener = Listener(on_press=self.on_key_press, on_release=self.on_key_release)
         self.keyboard_listener.start()
-        rate = rospy.Rate(10)
+        rate = rospy.Rate(10) # Поддержка сигналов 10Hz
         try:
             while not rospy.is_shutdown():
                 self.update_key_state()
@@ -35,29 +39,38 @@ class KeyboardTeleop:
         self.keyboard_listener.stop()
         self.keyboard_listener.join()    
 
+    # Обновление состояния с клавиатуры
     def update_key_state(self):
-        self.target_linear_vel = # --- Enter equation for linear speed ---
-        self.target_angular_vel = # --- Enter equation for angular speed ---
-        twist = Twist()
+        self.target_linear_vel = self.key_state_vel * MINICAR_MAX_LIN_VEL * self.speed_mul # Вычисление линейной скорости
+        self.target_angular_vel = self.key_state_ang * MINICAR_MAX_ANG_VEL * self.speed_mul # Вычисление угловой скорости
+        twist = Twist() # Создание сообщения
         twist.linear.x = self.target_linear_vel; twist.linear.y = 0.0; twist.linear.z = 0.0
         twist.angular.x = 0.0; twist.angular.y = 0.0; twist.angular.z = self.target_angular_vel
-        self.pub.publish(twist)
+        self.pub.publish(twist) # Публикация сообщения
 
+    # При нажатии клавиши меняем значения угловой или линейной скорости в зависимости от нажатой клавиши
     def on_key_press(self, key):
         if key == KeyCode.from_char('w'):
             self.key_state_vel = 1
-		
-		# --- enter key code here ---
-		
+        elif key == KeyCode.from_char('s'):
+            self.key_state_vel = -1
+        elif key == KeyCode.from_char('a'):
+            self.key_state_ang = 1
+        elif key == KeyCode.from_char('d'):
+            self.key_state_ang = -1
+        elif key == KeyCode.from_char('q'):
+            self.speed_mul = max(0.5, self.speed_mul - 0.1)
+        elif key == KeyCode.from_char('e'):
+            self.speed_mul = min(1.0, self.speed_mul + 0.1)
         self.update_key_state()
         return True
 
+    # При освобождении клавиши обнуляем значения угловой и линейной скорости
     def on_key_release(self, key):
-        if key == KeyCode.from_char('w') and self.key_state_vel != 0:
+        if key == KeyCode.from_char('w') or key == KeyCode.from_char('s'):
             self.key_state_vel = 0
-			
-		# --- enter key code here ---
-		
+        elif key == KeyCode.from_char('a') or key == KeyCode.from_char('d'):
+            self.key_state_ang = 0
         self.update_key_state()
         return True
 
